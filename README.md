@@ -1,264 +1,262 @@
-# Kimai custom component för Home Assistant
+# Kimai for Home Assistant
 
-Byggd mot Kimai 2.x REST API (Bearer-token). Kräver HA 2026.3+ (för lokala
-brand-bilder; övrigt fungerar på äldre versioner om du tar bort `brand/`).
+*[Svenska](README.sv.md)*
 
-## Installation via HACS (rekommenderat)
+A custom integration that connects [Kimai](https://www.kimai.org/) time
+tracking to Home Assistant. See what you are currently tracking, start and
+stop timesheets, and drive it all from scripts, dashboards or voice.
 
-1. Lägg upp den här mappen som ett eget GitHub-repo, t.ex. `ha-kimai`.
-   `hacs.json` ligger redan i roten och `custom_components/kimai/` under den –
-   det är strukturen HACS förväntar sig.
-2. Justera `documentation` och `issue_tracker` i `manifest.json` till ditt
-   faktiska repo (står placeholder just nu).
-3. Skapa en release/tag i repot (HACS läser versionstaggar).
-4. I HA: HACS → tre prickar → **Custom repositories** → klistra in repo-URL,
-   kategori **Integration** → Lägg till → installera → starta om HA.
+> **Status: early.** Works against Kimai 2.x, but has had limited testing
+> across Kimai versions. Bug reports welcome.
 
-## Manuell installation (SSH mot HAOS, port 22222)
+## Requirements
 
-Kopiera mappen `custom_components/kimai` till `/config/custom_components/kimai`
-på din HA-instans, t.ex:
+- Kimai 2.x with API access enabled
+- Home Assistant 2026.3 or newer (only for the local brand images — remove
+  `brand/` and it runs on older versions)
+- No external Python packages: `requirements` is empty
 
+## Installation
+
+### HACS
+
+1. HACS → three-dot menu → **Custom repositories**
+2. Paste this repository's URL, category **Integration**
+3. Install, then restart Home Assistant
+4. **Settings → Devices & services → Add integration → Kimai**
+
+### Manual
+
+Copy `custom_components/kimai` into `<config>/custom_components/kimai` on your
+Home Assistant instance and restart.
+
+## Setup
+
+You need your Kimai URL and an API token. Create the token in Kimai under your
+user profile → API access.
+
+It is worth verifying both before adding the integration:
+
+```bash
+curl -sS -H "Authorization: Bearer YOUR_TOKEN" https://kimai.example.com/api/version
+curl -sS -H "Authorization: Bearer YOUR_TOKEN" https://kimai.example.com/api/timesheets/active
 ```
-scp -P 22222 -r custom_components/kimai root@orvar:/mnt/data/supervisor/homeassistant/custom_components/kimai
-```
 
-(Justa sökvägen om `/config` är mountat annorlunda – kontrollera med
-`ha core info` eller via Samba/`docker exec` in i homeassistant-containern.)
+If those return JSON rather than 401/403, the config flow will work.
 
-Starta om Home Assistant, gå sedan till
-**Inställningar → Enheter & tjänster → Lägg till integration → Kimai**.
+## Entities
 
-## Innan du testar i HA
-
-Verifiera token och host manuellt först:
-
-```
-curl -sS -H "Authorization: Bearer DIN_TOKEN" https://kimai.example.se/api/version
-curl -sS -H "Authorization: Bearer DIN_TOKEN" https://kimai.example.se/api/timesheets/active
-curl -sS -H "Authorization: Bearer DIN_TOKEN" https://kimai.example.se/api/projects?visible=1
-```
-
-Om dessa fungerar (JSON tillbaka, inte 401/403) kommer config flow att fungera.
-Token skapas under Kimai → din profil → API-åtkomst.
-
-## Entiteter som skapas
+Entity names are currently in Swedish, which means the generated entity IDs are
+too — see [Known limitations](#known-limitations).
 
 **Binary sensor**
-- `binary_sensor.kimai_aktivt` – device_class `running`, med ikonlogik
-  (mdi:clock-check / mdi:clock-off). Ersätter template-varianten. Attribut:
-  `project`, `activity` (råa ID:n) samt namnen
 
-**Sensorer**
-- `sensor.kimai_status` – aktivt projektnamn eller "Ledig". Attribut: `pagaende`,
-  `timesheet_id`, `project`, `activity` (råa ID:n), `aktivitet` (namn),
-  `begin`/`starttid`, `description`/`beskrivning`
-- `sensor.kimai_pagaende_tid` – minuter i pågående tidrapport (device_class
-  duration). Uppdateras var 30:e sekund med coordinatorn
-- `sensor.kimai_startad` – starttidpunkt som timestamp. Använd denna för en
-  sekund-för-sekund-räknare i Lovelace (relative time renderas klientsidan,
-  helt utan polling)
-- `sensor.kimai_senaste` – vad "Starta senaste" skulle återuppta
+| Entity | Description |
+| --- | --- |
+| `binary_sensor.kimai_aktivt` | Whether a timesheet is running (`device_class: running`) |
 
-**Knappar**
-- `button.kimai_starta` – startar valt projekt i select-listan
-- `button.kimai_starta_senaste` – återupptar senast stoppade tidrapport (samma
-  kund/projekt/aktivitet) via Kimais restart-endpoint. Blir `unavailable` om
-  ingen tidigare rapport finns
-- `button.kimai_stoppa` – stoppar aktiv tidrapport
+**Sensors**
+
+| Entity | Description |
+| --- | --- |
+| `sensor.kimai_status` | Active project name, or "Ledig" when idle |
+| `sensor.kimai_pagaende_tid` | Minutes elapsed in the running timesheet |
+| `sensor.kimai_startad` | Start time as a timestamp — use this for a live counter |
+| `sensor.kimai_senaste` | What "start last" would resume |
+
+`sensor.kimai_status` exposes `project`, `activity`, `begin` and `description`
+as attributes, so you can template against the raw values.
+
+**Buttons**
+
+| Entity | Description |
+| --- | --- |
+| `button.kimai_starta` | Start whatever is selected in the select entity |
+| `button.kimai_starta_senaste` | Resume the last stopped record, same project and activity |
+| `button.kimai_stoppa` | Stop the running timesheet |
 
 **Select**
-- `select.kimai_valj_projekt` – vad `button.kimai_starta` ska starta
 
-## Services
+| Entity | Description |
+| --- | --- |
+| `select.kimai_valj_projekt` | What the start button will launch |
 
-- `kimai.start_by_name` (project, activity, description) – **enklaste vägen in.**
-  Ta namn eller ID; namn matchas exakt men skiftlägesokänsligt mot Kimai
-- `kimai.start_timesheet` (project_id, activity_id, description)
-- `kimai.stop_timesheet`
-- `kimai.restart_last` – samma som knappen, för dina scripts
+## Actions
 
-## Styra från script / input_text / röstassistent
+| Action | Fields |
+| --- | --- |
+| `kimai.start_by_name` | `project`, `activity` (optional), `description` (optional) |
+| `kimai.start_timesheet` | `project_id`, `activity_id`, `description` (optional) |
+| `kimai.stop_timesheet` | — |
+| `kimai.restart_last` | — |
 
-`kimai.start_by_name` gör att man slipper hårdkoda numeriska ID:n:
+`start_by_name` is usually what you want. It accepts either names or numeric
+IDs, so nothing needs hardcoding:
 
 ```yaml
 script:
-  starta_kimai:
+  start_kimai:
     fields:
-      uppdrag:
+      task:
         selector:
           text:
     sequence:
       - action: kimai.start_by_name
         data:
-          project: "{{ uppdrag }}"
-          description: "{{ uppdrag }}"
+          project: "{{ task }}"
+          description: "{{ task }}"
 ```
 
-Vill man styra via en `input_text` eller `input_select` räcker det att skicka
-dess state som `project`. Anges ingen `activity` används projektets första.
-Anges den kan det vara namn eller ID.
+Drive it from an `input_text`, an `input_select`, a dashboard button or a voice
+assistant — anything that can pass a string.
 
-Om namnet inte finns i Kimai kastas ett tydligt fel istället för att fel projekt
-startas – uppslagningen är exakt matchning, ingen fuzzy-sökning.
+Names are matched exactly, case-insensitively. If the name does not exist in
+Kimai you get a clear error rather than the wrong project being started.
 
-### Varför inte Kimais egen sökning?
+Kimai does offer a `term` parameter for free-text search, but it returns
+partial matches and possibly several results. Starting the wrong project is
+worse than an error message, so the integration matches against the project and
+activity lists it has already fetched. This also costs no extra API calls.
 
-Kimai har en `term`-parameter för fritextsökning på projekt och aktiviteter, men
-den ger delträffar och kan returnera flera resultat. Att starta fel projekt är
-värre än att få ett felmeddelande, så integrationen matchar istället exakt mot
-projekt- och aktivitetslistorna som coordinatorn ändå redan har hämtat. Det
-kostar heller inga extra API-anrop.
+Activity names are not unique in Kimai — several projects often have an
+activity called "Meeting". When a project is known, activities belonging to it
+are preferred, with global activities as a fallback.
 
-Aktivitetsnamn är inte unika i Kimai – flera projekt har ofta en aktivitet som
-heter t.ex. "Möte". Uppslagningen viktar därför aktiviteter som hör till det
-valda projektet högre, och faller tillbaka på globala aktiviteter.
+## Project and activity mappings
 
-## Röststyrning (Assist)
+By default the select entity lists raw Kimai project names, and the start
+button uses the first activity it finds for that project. That is often not
+what you want.
 
-Integrationen registrerar tre intents. Det ger **både** den inbyggda
-Assist-matchningen och LLM-agenter tillgång till samma funktioner, eftersom
-HA:s LLM-API (Assist) byggs upp från registrerade intents.
+Under **Settings → Devices & services → Kimai → Configure** you can map each
+project to a specific activity, and give the pair your own label:
 
-| Intent | Vad den gör |
+- **Add mapping** — pick project, pick activity, name it
+- **Edit mapping** — change the activity or the label
+- **Remove mapping**
+- **Import several** — paste a whole table as JSON
+- **Reload projects and activities** — refetch the lists from Kimai
+
+The import format:
+
+```json
+{
+  "Client work": { "project": 3, "activity": 7 },
+  "Internal meetings": { "project": 3, "activity": 12 },
+  "Admin": { "project": 9, "activity": 4, "description": "Administration" }
+}
+```
+
+Mappings are keyed by label, so the same project can appear more than once with
+different activities. `description` is optional and defaults to the label.
+
+Mappings live in `.storage/core.config_entries` alongside the host and token —
+a plain JSON file, not the recorder database. They are included in Home
+Assistant backups and unaffected by recorder purges. The token is stored in
+clear text there, as it is for every other Home Assistant integration.
+
+## Voice control
+
+The integration registers three intents:
+
+| Intent | Purpose |
 | --- | --- |
-| `KimaiStartTimesheet` | Startar projekt (slots: `project`, `activity`, `description`) |
-| `KimaiStopTimesheet` | Stoppar pågående tidtagning |
-| `KimaiCurrentTimesheet` | Svarar på vad som pågår och hur länge |
+| `KimaiStartTimesheet` | Start a project (slots: `project`, `activity`, `description`) |
+| `KimaiStopTimesheet` | Stop the running timesheet |
+| `KimaiCurrentTimesheet` | Report what is running and for how long |
 
-### Med LLM-agent (Ollama, OpenAI, m.fl.)
+**With an LLM conversation agent** (Ollama, OpenAI and friends) this works
+immediately — just select **Assist** as the API in the agent's options. Home
+Assistant builds its LLM API from registered intents, so the model gets these
+as callable tools. Project names are passed as free text and resolved against
+Kimai, so nothing needs configuring up front.
 
-Fungerar direkt efter installation. Välj bara **Assist** som API i agentens
-inställningar. Modellen ser intent-beskrivningarna och kan anropa dem:
+> "I'm working on the research project now"
+> → *Started tracking time for Research project.*
 
-> "Nu ska jag jobba med Forskningsprojektet"
-> → *Startade tidtagning för Forskningsprojekt.*
-
-Projektnamnet skickas som fritext och slås upp mot Kimai i integrationen, så
-inget behöver konfigureras i förväg. Föreslår modellen ett namn som inte finns
-får den ett tydligt fel tillbaka och kan fråga om.
-
-### Med inbyggda Assist (utan LLM)
-
-Meningar kan **inte** ligga i en custom integration - HA laddar dem bara från
-`config/custom_sentences/<språk>/`. Kopiera därför:
+**With the built-in sentence matcher**, sentences cannot ship inside a custom
+integration — Home Assistant only loads them from
+`config/custom_sentences/<language>/`. Copy the example file:
 
 ```
-custom_sentences_exempel/sv/kimai.yaml  ->  config/custom_sentences/sv/kimai.yaml
+custom_sentences_examples/en/kimai.yaml  →  config/custom_sentences/en/kimai.yaml
 ```
 
-och fyll i dina egna projektnamn under `lists: project:`. Den inbyggda
-matchningen kan inte hämta listan dynamiskt från Kimai - den behöver veta
-giltiga ord i förväg. Starta om HA (eller ladda om `conversation`) efteråt.
+and fill in your own project names under `lists: project:`. The built-in
+matcher cannot fetch the list from Kimai; it needs to know valid words in
+advance. Restart Home Assistant afterwards.
 
-## Tips: live-räknare i Lovelace
+## Dashboard tip: a live counter
 
-`sensor.kimai_pagaende_tid` uppdateras var 30:e sekund. Vill du ha en räknare
-som tickar varje sekund, använd `sensor.kimai_startad` istället – t.ex. med
-mushroom-template-card och `relative_time()`, eller ett vanligt entity-kort
-(HA renderar timestamp-sensorer som "för X minuter sedan" automatiskt).
+`sensor.kimai_pagaende_tid` updates every 30 seconds. For a counter that ticks
+every second, use `sensor.kimai_startad` instead — Home Assistant renders
+timestamp sensors as relative time client-side, with no extra polling. A plain
+entity card works, or a mushroom-template-card with `relative_time()`.
 
-## Kugghjulet (Options Flow)
+## When lists are refreshed
 
-Inställningar → Enheter & tjänster → Kimai → **Konfigurera**:
+Projects and activities are fetched **when the integration loads**: on Home
+Assistant restart, on integration reload, and whenever you change something in
+the options (which triggers a reload). They are not polled in between, since
+they rarely change.
 
-- **Lägg till koppling** – välj projekt → välj aktivitet → sätt eget namn
-- **Ändra koppling** – redigera aktivitet och/eller namn på befintlig koppling
-  (formuläret förifylls med nuvarande värden)
-- **Ta bort koppling**
-- **Importera flera** – klistra in hela mappningen som JSON
-- **Ladda om projekt och aktiviteter** – hämtar listorna på nytt från Kimai
-- **Klar** – sparar och laddar om integrationen automatiskt
+Add a project in Kimai and it will not appear automatically. Pick **Reload
+projects and activities** in the options to fetch the lists without a restart.
+The options forms always query the API directly, so they show current data even
+when the coordinator's copy is stale.
 
-Menyn visar hur många projekt och aktiviteter som är inlästa och när, så du
-ser direkt om listorna är gamla.
+## Impact on your Home Assistant instance
 
-### Om när projektlistan uppdateras
+- **No synchronous I/O.** All API calls go through `aiohttp` on the event loop,
+  so a slow or unreachable Kimai cannot block other integrations.
+- **No external packages.** Nothing gets pip-installed, no version conflicts.
+- **Light polling.** Two parallel API calls every 30 seconds. Raise
+  `DEFAULT_SCAN_INTERVAL` in `const.py` if you want less; 60–120 seconds is
+  fine unless you care about the live counter.
+- **Cleans up after itself.** Unloading removes actions, `hass.data` keys and
+  entity references, so repeated reloads do not leak.
+- **Nine entities total.**
 
-Projekt och aktiviteter hämtas **vid inladdning** av integrationen - alltså
-vid HA-omstart, vid reload av integrationen, och när du ändrar något i
-kugghjulet (vilket triggar en reload). Däremellan pollas de inte alls.
+## A note on Kimai's data format
 
-Lägger du till ett nytt projekt i Kimai dyker det därför inte upp automatiskt.
-Välj **Ladda om projekt och aktiviteter** i kugghjulet, så hämtas listorna
-direkt utan omstart.
+Depending on version and endpoint, Kimai returns `project` and `activity`
+either as nested objects or as bare numeric IDs. The integration handles both:
+when only IDs come back, names are resolved against the project and activity
+lists.
 
-Formulären i kugghjulet hämtar alltid färsk data direkt från API:et, så de
-visar rätt projekt även om coordinatorns cache är gammal.
+If `sensor.kimai_status` shows a number instead of a name, or stays idle while
+Kimai is clearly running something, that is the place to look. The entity's
+attributes in Developer Tools will show what actually came back.
 
-Utan kopplingar visar `select.kimai_valj_projekt` Kimais råa projektnamn och
-start-knappen tar första aktiviteten för projektet. Med kopplingar visas dina
-egna namn och exakt rätt projekt+aktivitet startas.
+## Known limitations
 
-Projekt och aktiviteter hämtas live från Kimais API varje gång du öppnar
-kugghjulet – inget är hårdkodat eller cachat mellan omstarter.
+- **Entity names are in Swedish**, so entity IDs are too. Fixing this properly
+  means moving to `_attr_translation_key` with entity translations. Contributions
+  welcome; it is on the list.
+- The select entity's choice is local to Home Assistant and resets on restart,
+  falling back to the first option. `RestoreEntity` would fix it.
+- Kimai 1.x is not supported — it used a different auth scheme
+  (`X-AUTH-USER`/`X-AUTH-TOKEN`).
+- Only the first active timesheet is shown if Kimai is configured to allow
+  several at once.
 
-## Var lagras datan?
+## Development
 
-- **Host, token, verify_ssl** → `.storage/core.config_entries` (fältet `data`)
-- **Kopplingarna** → samma fil, fältet `options`
-
-Det är en vanlig JSON-fil, inte recorder-databasen. Den ingår i HA-backupen och
-påverkas inte av `recorder`-purge. Token ligger i klartext där, precis som för
-alla andra HA-integrationer.
-
-## Ersätter dessa template-sensorer
-
-Integrationen täcker det som tidigare byggdes med REST-sensorer + templates:
-
-| Tidigare template | Ersätts av |
-| --- | --- |
-| `binary_sensor.kimai_aktivt` | `binary_sensor.kimai_aktivt` |
-| `sensor.kimai_aktuellt_projekt` | `sensor.kimai_status` (attribut `begin`, `project`, `activity`, `description`) |
-| `sensor.kimai_projekt_id` | attributet `project` på ovanstående |
-| `sensor.kimai_raw_*` | behövs inte – coordinatorn hämtar allt |
-
-Vill du behålla dina gamla entitets-ID:n kan du peka om dina templates mot de
-nya attributen istället för `sensor.kimai_raw_*`, så slipper du röra
-automationer och dashboards.
-
-## Om dataformatet
-
-Kimai returnerar `project` och `activity` antingen som nästlade objekt eller
-som råa ID:n beroende på version och endpoint. Koden hanterar båda: namn slås
-upp mot projekt-/aktivitetslistorna när bara ID:n kommer tillbaka.
-
-## Påverkan på resten av Home Assistant
-
-Integrationen är byggd för att inte kunna störa andra integrationer:
-
-- **Ingen synkron I/O.** Alla API-anrop går via `aiohttp` i event-loopen.
-  Inget blockerar MainThread, så en långsam eller nedlagd Kimai kan inte
-  frysa andra integrationer.
-- **Inga externa pip-paket.** `requirements: []` - inget installeras i din
-  HA-instans, inga versionskonflikter med andra integrationer.
-- **Låg pollingbelastning.** Cykeln är 2 parallella API-anrop var 30:e
-  sekund. Projekt- och aktivitetslistorna hämtas bara vid inladdning av
-  integrationen - de ändras sällan nog att återkommande anrop är onödiga.
-- **Går Kimai ner** markeras entiteterna `unavailable` och coordinatorn
-  backar av. Inga upprepade fel i loggen, inget som påverkar övriga entiteter.
-- **Städar efter sig.** Vid unload tas services, `hass.data`-nycklar och
-  entitetsreferenser bort. Upprepade omladdningar läcker inte minne.
-- **13 entiteter totalt** (4 sensorer, 1 binary sensor, 3 knappar,
-  1 select) - försumbart i en stor instans.
-
-Vill du sänka belastningen ytterligare kan `DEFAULT_SCAN_INTERVAL` i
-`const.py` höjas. 30 sekunder är valt för att `sensor.kimai_pagaende_tid` ska
-kännas levande; behöver du inte det räcker 60-120 sekunder gott.
-
-## Kända begränsningar / nästa steg
-
-- `select.kimai_valj_projekt`s val är lokalt i HA och nollställs vid omstart
-  (den återgår till första alternativet i listan). Kan lösas med
-  `RestoreEntity` om det stör.
-- Ingen felhantering för Kimai-versioner < 2.x (annan auth-metod,
-  X-AUTH-USER/X-AUTH-TOKEN). Säg till om du kör en äldre version.
-- Ingen `unique_id`-migrering behövs ännu eftersom detta är v0.1.
-
-## Utveckling
-
-Enklast: kör HA i en devcontainer/venv på din dev-maskin med denna mapp
-symlinkad in i `config/custom_components/`, så slipper du starta om din
-produktions-HA för varje ändring. Home Assistants officiella dev-mall:
+Run Home Assistant in a devcontainer and symlink this folder into
+`config/custom_components/`, so you can iterate without touching a production
+instance. Home Assistant's official template:
 https://github.com/home-assistant/integration_blueprint
+
+Note that testing writes real timesheets to whatever Kimai instance you point
+it at. A throwaway Kimai in Docker is worth the five minutes:
+
+```bash
+docker run --rm -p 8001:8001 \
+  -e ADMINMAIL=admin@example.com \
+  -e ADMINPASS=some-password \
+  kimai/kimai2:apache
+```
+
+## License
+
+MIT
