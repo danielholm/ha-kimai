@@ -10,8 +10,10 @@ stop timesheets, and drive it all from scripts, dashboards or voice.
 > across Kimai versions. Bug reports welcome.
 
 ## Disclaimer
-This is "vibe coded". I previously had REST and shell commands, togehter with templated sensors, selectors, scripts and automatoins that handled my Kimai instance.
-Now, I had Claude put them together with a nice config flow.
+
+This is "vibe coded". I previously had REST and shell commands, together with
+templated sensors, selectors, scripts and automations that handled my Kimai
+instance. Now, I had Claude put them together with a nice config flow.
 
 Use as is.
 
@@ -25,6 +27,7 @@ Use as is.
 ## Installation
 
 ### Short way
+
 Add repo to HACS
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=danielholm&repository=ha-kimai&category=integration)
@@ -61,40 +64,44 @@ If those return JSON rather than 401/403, the config flow will work.
 
 ## Entities
 
-Entity names are currently in Swedish, which means the generated entity IDs are
-too — see [Known limitations](#known-limitations).
+Entity names are translated (English and Swedish included). Entity IDs are
+generated when the entities are first created, based on the name in your Home
+Assistant language — the IDs below are what an English instance gets.
 
 **Binary sensor**
 
 | Entity | Description |
 | --- | --- |
-| `binary_sensor.kimai_aktivt` | Whether a timesheet is running (`device_class: running`) |
+| `binary_sensor.kimai_active` | Whether a timesheet is running (`device_class: running`) |
 
 **Sensors**
 
 | Entity | Description |
 | --- | --- |
-| `sensor.kimai_status` | Active project name, or "Ledig" when idle |
-| `sensor.kimai_pagaende_tid` | Minutes elapsed in the running timesheet |
-| `sensor.kimai_startad` | Start time as a timestamp — use this for a live counter |
-| `sensor.kimai_senaste` | What "start last" would resume |
+| `sensor.kimai_status` | Active project name, or "Idle" when nothing is running |
+| `sensor.kimai_elapsed` | Minutes elapsed in the running timesheet |
+| `sensor.kimai_started` | Start time as a timestamp — use this for a live counter |
+| `sensor.kimai_last` | Last **completed** record — what "Start last" would resume |
 
 `sensor.kimai_status` exposes `project`, `activity`, `begin` and `description`
 as attributes, so you can template against the raw values.
+
+Note that `sensor.kimai_last` shows the last *finished* record. While something
+is running, that is the entry before it — not the one currently being tracked.
 
 **Buttons**
 
 | Entity | Description |
 | --- | --- |
-| `button.kimai_starta` | Start whatever is selected in the select entity |
-| `button.kimai_starta_senaste` | Resume the last stopped record, same project and activity |
-| `button.kimai_stoppa` | Stop the running timesheet |
+| `button.kimai_start` | Start whatever is selected in the select entity |
+| `button.kimai_start_last` | Resume the last stopped record, same project and activity |
+| `button.kimai_stop` | Stop the running timesheet |
 
 **Select**
 
 | Entity | Description |
 | --- | --- |
-| `select.kimai_valj_projekt` | What the start button will launch |
+| `select.kimai_project` | What the start button will launch |
 
 ## Actions
 
@@ -139,18 +146,27 @@ are preferred, with global activities as a fallback.
 
 ## Project and activity mappings
 
-By default the select entity lists raw Kimai project names, and the start
-button uses the first activity it finds for that project. That is often not
-what you want.
+Kimai timesheets need both a project **and** an activity. Without a mapping,
+the start button picks the first activity it finds for the chosen project,
+which is often not the one you want.
 
-Under **Settings → Devices & services → Kimai → Configure** you can map each
-project to a specific activity, and give the pair your own label:
+Under **Settings → Devices & services → Kimai → Configure** you can pin a
+project to a specific activity and give the pair your own label:
 
 - **Add mapping** — pick project, pick activity, name it
 - **Edit mapping** — change the activity or the label
 - **Remove mapping**
 - **Import several** — paste a whole table as JSON
 - **Reload projects and activities** — refetch the lists from Kimai
+
+The select entity shows **your mappings first, then every project from Kimai**.
+A mapping is a shortcut to a specific project+activity pair — it does not hide
+the rest of your projects. Pick a plain project name and the first activity is
+used, as before. If a mapping shares its name with a project, it appears once
+and the mapping wins.
+
+Each change is saved immediately, so leaving the dialog halfway cannot lose
+anything.
 
 The import format:
 
@@ -203,10 +219,10 @@ advance. Restart Home Assistant afterwards.
 
 ## Dashboard tip: a live counter
 
-`sensor.kimai_pagaende_tid` updates every 30 seconds. For a counter that ticks
-every second, use `sensor.kimai_startad` instead — Home Assistant renders
-timestamp sensors as relative time client-side, with no extra polling. A plain
-entity card works, or a mushroom-template-card with `relative_time()`.
+The elapsed sensor updates every 30 seconds. For a counter that ticks every
+second, use the started sensor instead — Home Assistant renders timestamp
+sensors as relative time client-side, with no extra polling. A plain entity
+card works, or a mushroom-template-card with `relative_time()`.
 
 ## When lists are refreshed
 
@@ -239,21 +255,21 @@ either as nested objects or as bare numeric IDs. The integration handles both:
 when only IDs come back, names are resolved against the project and activity
 lists.
 
-If `sensor.kimai_status` shows a number instead of a name, or stays idle while
+If the status sensor shows a number instead of a name, or stays idle while
 Kimai is clearly running something, that is the place to look. The entity's
 attributes in Developer Tools will show what actually came back.
 
 ## Known limitations
 
-- **Entity names are in Swedish**, so entity IDs are too. Fixing this properly
-  means moving to `_attr_translation_key` with entity translations. Contributions
-  welcome; it is on the list.
 - The select entity's choice is local to Home Assistant and resets on restart,
   falling back to the first option. `RestoreEntity` would fix it.
 - Kimai 1.x is not supported — it used a different auth scheme
   (`X-AUTH-USER`/`X-AUTH-TOKEN`).
 - Only the first active timesheet is shown if Kimai is configured to allow
   several at once.
+- Upgrading from a version before entity translations were added: existing
+  entities keep their original IDs, since the entity registry matches on
+  `unique_id`. Only the displayed names change.
 
 ## Development
 
