@@ -9,6 +9,12 @@ stop timesheets, and drive it all from scripts, dashboards or voice.
 > **Status: early.** Works against Kimai 2.x, but has had limited testing
 > across Kimai versions. Bug reports welcome.
 
+## Disclaimer
+This is "vibe coded". I previously had REST and shell commands, togehter with templated sensors, selectors, scripts and automatoins that handled my Kimai instance.
+Now, I had Claude put them together with a nice config flow.
+
+Use as is.
+
 ## Requirements
 
 - Kimai 2.x with API access enabled
@@ -17,6 +23,13 @@ stop timesheets, and drive it all from scripts, dashboards or voice.
 - No external Python packages: `requirements` is empty
 
 ## Installation
+
+### Short way
+Add repo to HACS
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=danielholm&repository=ha-kimai&category=integration)
+
+After restart add the integration
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=kimai)
 
 ### HACS
 
