@@ -1,0 +1,40 @@
+language: "en"
+intents:
+  KimaiStartTimesheet:
+    data:
+      - sentences:
+          - "(start|begin) [tracking] [time] [on|for] {project}"
+          - "I'm working on {project} [now]"
+          - "start working on {project}"
+        slots:
+          description: "{project}"
+
+      - sentences:
+          - "(start|begin) {project} [with] activity {activity}"
+          - "I'm working on {activity} (in|for) {project}"
+
+  KimaiStopTimesheet:
+    data:
+      - sentences:
+          - "stop (tracking|time|timer)"
+          - "stop kimai"
+          - "I'm done [for (today|the day)]"
+          - "take a break"
+
+  KimaiCurrentTimesheet:
+    data:
+      - sentences:
+          - "what am I working on"
+          - "is [there] anything tracking"
+          - "how long have I been working"
+
+lists:
+  # Fill in your own project names - the built-in matcher needs to know them
+  # up front. Not needed at all when using an LLM conversation agent.
+  project:
+    values:
+      - "example project"
+
+  activity:
+    values:
+      - "meeting"

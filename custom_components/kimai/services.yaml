@@ -1,0 +1,71 @@
+start_timesheet:
+  name: Starta tidrapport
+  description: Startar en ny tidrapport för angivet projekt och aktivitet i Kimai.
+  fields:
+    project_id:
+      name: Projekt-ID
+      description: Kimai-projektets numeriska ID.
+      required: true
+      example: 3
+      selector:
+        number:
+          min: 1
+          mode: box
+    activity_id:
+      name: Aktivitets-ID
+      description: Kimai-aktivitetens numeriska ID.
+      required: true
+      example: 7
+      selector:
+        number:
+          min: 1
+          mode: box
+    description:
+      name: Beskrivning
+      description: Fritext som sparas på tidrapporten i Kimai.
+      required: false
+      example: Studierektor
+      selector:
+        text:
+
+stop_timesheet:
+  name: Stoppa tidrapport
+  description: Stoppar den aktiva tidrapporten i Kimai.
+  fields: {}
+
+start_by_name:
+  name: Starta med namn
+  description: >-
+    Startar en tidrapport genom att ange projekt och aktivitet med namn istället
+    för numeriska ID:n. Namn matchas exakt (skiftlägesokänsligt) mot vad som
+    finns i Kimai. Numeriska ID:n fungerar också.
+  fields:
+    project:
+      name: Projekt
+      description: Projektets namn eller ID.
+      required: true
+      example: Forskningsprojekt
+      selector:
+        text:
+    activity:
+      name: Aktivitet
+      description: >-
+        Aktivitetens namn eller ID. Utelämnas den används projektets första
+        aktivitet.
+      required: false
+      example: Möte
+      selector:
+        text:
+    description:
+      name: Beskrivning
+      description: Fritext som sparas på tidrapporten i Kimai.
+      required: false
+      selector:
+        text:
+
+restart_last:
+  name: Starta senaste
+  description: >-
+    Återupptar den senast stoppade tidrapporten (samma kund, projekt och
+    aktivitet) i Kimai.
+  fields: {}

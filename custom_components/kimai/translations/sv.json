@@ -1,0 +1,81 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Anslut till Kimai",
+        "data": {
+          "host": "URL till Kimai (t.ex. https://kimai.example.se)",
+          "api_token": "API-token",
+          "verify_ssl": "Verifiera SSL-certifikat"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ogiltig API-token",
+      "cannot_connect": "Kunde inte ansluta till Kimai",
+      "unknown": "Okänt fel"
+    },
+    "abort": {
+      "already_configured": "Denna Kimai-instans är redan konfigurerad"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Kimai - projekt & aktiviteter",
+        "description": "Nuvarande kopplingar:\n{current_mappings}",
+        "menu_options": {
+          "add_mapping": "Lägg till koppling",
+          "edit_mapping": "Ändra koppling",
+          "remove_mapping": "Ta bort koppling",
+          "done": "Klar",
+          "import_mappings": "Importera flera",
+          "refresh_data": "Ladda om projekt och aktiviteter"
+        }
+      },
+      "add_mapping": {
+        "title": "Välj projekt",
+        "data": {
+          "project_id": "Projekt"
+        }
+      },
+      "edit_mapping": {
+        "title": "Ändra koppling",
+        "data": {
+          "mapping": "Koppling att ändra"
+        }
+      },
+      "add_activity": {
+        "title": "Välj aktivitet för {project}",
+        "data": {
+          "activity_id": "Aktivitet",
+          "label": "Eget namn (visas i select.kimai_valj_projekt)",
+          "description": "Beskrivning som skickas till Kimai (valfritt, standard = namnet)"
+        }
+      },
+      "remove_mapping": {
+        "title": "Ta bort koppling",
+        "data": {
+          "mapping": "Koppling att ta bort"
+        }
+      },
+      "import_mappings": {
+        "title": "Importera kopplingar",
+        "description": "Klistra in JSON, t.ex. {\"Studierektor\": {\"project\": 1, \"activity\": 2}}. Samma format som den gamla YAML-mappningen.",
+        "data": {
+          "json": "JSON-mappning",
+          "replace": "Ersätt befintliga kopplingar (annars slås de ihop)"
+        }
+      }
+    },
+    "abort": {
+      "cannot_connect": "Kunde inte nå Kimai",
+      "no_projects": "Inga projekt hittades i Kimai",
+      "no_activities": "Projektet har inga aktiviteter i Kimai",
+      "not_loaded": "Integrationen är inte inläst - starta om Home Assistant"
+    },
+    "error": {
+      "invalid_json": "Kunde inte tolka JSON - kontrollera formatet"
+    }
+  }
+}

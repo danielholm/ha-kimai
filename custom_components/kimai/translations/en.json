@@ -1,0 +1,81 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Kimai",
+        "data": {
+          "host": "Kimai URL (e.g. https://kimai.example.com)",
+          "api_token": "API token",
+          "verify_ssl": "Verify SSL certificate"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid API token",
+      "cannot_connect": "Could not connect to Kimai",
+      "unknown": "Unknown error"
+    },
+    "abort": {
+      "already_configured": "This Kimai instance is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Kimai - projects & activities",
+        "description": "Current mappings:\n{current_mappings}",
+        "menu_options": {
+          "add_mapping": "Add mapping",
+          "remove_mapping": "Remove mapping",
+          "done": "Done",
+          "edit_mapping": "Edit mapping",
+          "import_mappings": "Import several",
+          "refresh_data": "Reload projects and activities"
+        }
+      },
+      "add_mapping": {
+        "title": "Choose project",
+        "data": {
+          "project_id": "Project"
+        }
+      },
+      "edit_mapping": {
+        "title": "Edit mapping",
+        "data": {
+          "mapping": "Mapping to edit"
+        }
+      },
+      "add_activity": {
+        "title": "Choose activity for {project}",
+        "data": {
+          "activity_id": "Activity",
+          "label": "Custom name (shown in select.kimai_valj_projekt)",
+          "description": "Description sent to Kimai (optional, defaults to the name)"
+        }
+      },
+      "remove_mapping": {
+        "title": "Remove mapping",
+        "data": {
+          "mapping": "Mapping to remove"
+        }
+      },
+      "import_mappings": {
+        "title": "Import mappings",
+        "description": "Paste JSON, e.g. {\"Studierektor\": {\"project\": 1, \"activity\": 2}}. Same shape as the old YAML map.",
+        "data": {
+          "json": "JSON mapping",
+          "replace": "Replace existing mappings (otherwise merge)"
+        }
+      }
+    },
+    "abort": {
+      "cannot_connect": "Could not reach Kimai",
+      "no_projects": "No projects found in Kimai",
+      "no_activities": "The project has no activities in Kimai",
+      "not_loaded": "The integration is not loaded - restart Home Assistant"
+    },
+    "error": {
+      "invalid_json": "Could not parse JSON - check the format"
+    }
+  }
+}
