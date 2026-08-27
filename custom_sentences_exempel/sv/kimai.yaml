@@ -1,0 +1,54 @@
+language: "sv"
+intents:
+  KimaiStartTimesheet:
+    data:
+      - sentences:
+          - "(starta|börja) [tidtagning] [för|på|med] {project}"
+          - "nu (ska|tänker) jag jobba med {project}"
+          - "jag (jobbar|arbetar) med {project} [nu]"
+          - "(sätt|starta) igång [tiden] [på|för] {project}"
+          - "börja (jobba|arbeta) med {project}"
+        slots:
+          description: "{project}"
+
+      # Med aktivitet angiven
+      - sentences:
+          - "(starta|börja) {project} [med] aktivitet[en] {activity}"
+          - "jag (jobbar|arbetar) med {activity} (i|på|för) {project}"
+
+  KimaiStopTimesheet:
+    data:
+      - sentences:
+          - "(stoppa|stanna|avsluta) tid[tagning]"
+          - "(stoppa|avsluta) kimai"
+          - "jag är (klar|färdig) [för (idag|dagen)]"
+          - "(sluta|slutar) jobba"
+          - "ta[r] (paus|rast)"
+
+  KimaiCurrentTimesheet:
+    data:
+      - sentences:
+          - "vad (jobbar|arbetar) jag med"
+          - "vad (jobbar|arbetar) jag med (just nu|nu)"
+          - "(pågår|går) det någon tidtagning"
+          - "hur länge har jag (jobbat|arbetat)"
+          - "vad är igång i kimai"
+
+lists:
+  # VIKTIGT: fyll i dina egna projektnamn här. Den inbyggda Assist-matchningen
+  # kan inte hämta listan dynamiskt från Kimai - den behöver veta i förväg
+  # vilka ord som är giltiga. Namnen måste matcha projektnamnen i Kimai
+  # (skiftläge spelar ingen roll).
+  #
+  # Kör LLM-agent istället? Då behövs den här listan inte alls - modellen
+  # skickar projektnamnet fritt och integrationen slår upp det.
+  project:
+    values:
+      - "exempelprojekt"
+      - in: "(admin|administration|administrativt)"
+        out: "Administrativt"
+
+  activity:
+    values:
+      - "möte"
+      - "utveckling"
