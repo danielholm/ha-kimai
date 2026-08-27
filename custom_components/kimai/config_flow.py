@@ -109,8 +109,24 @@ class KimaiOptionsFlowHandler(config_entries.OptionsFlow):
         return KimaiApiClient(session, data[CONF_HOST], data[CONF_API_TOKEN], verify_ssl)
 
     def _ensure_mappings_loaded(self) -> None:
-        if self._mappings is None:
-            self._mappings = dict(self.config_entry.options.get(CONF_MAPPINGS, {}))
+        """Always read from the config entry, never from stale memory.
+
+        Earlier versions accumulated changes in memory and wrote everything at
+        once when the user pressed "Klar". That meant a single write could
+        overwrite the whole table with an incomplete copy. Each mutation is now
+        persisted immediately instead.
+        """
+        self._mappings = dict(self.config_entry.options.get(CONF_MAPPINGS, {}))
+
+    def _save_mappings(self, mappings: dict[str, dict]) -> None:
+        """Persist immediately, merging into whatever else is in options."""
+        options = dict(self.config_entry.options)
+        options[CONF_MAPPINGS] = mappings
+        self.hass.config_entries.async_update_entry(
+            self.config_entry, options=options
+        )
+        self._mappings = mappings
+        _LOGGER.debug("Sparade %d Kimai-kopplingar", len(mappings))
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -227,6 +243,9 @@ class KimaiOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_add_activity(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
+        # Måste läsas in här: det här steget skriver mappningarna, och utan
+        # inläsning skrevs hela tabellen över med enbart den nya posten.
+        self._ensure_mappings_loaded()
         client = await self._get_client()
 
         try:
@@ -289,9 +308,11 @@ class KimaiOptionsFlowHandler(config_entries.OptionsFlow):
             entry[CONF_DESCRIPTION] = user_input[CONF_DESCRIPTION]
 
         # Om namnet ändrades vid redigering: ta bort den gamla nyckeln.
+        mappings = dict(self._mappings)
         if self._editing_key and self._editing_key != label:
-            self._mappings.pop(self._editing_key, None)
-        self._mappings[label] = entry
+            mappings.pop(self._editing_key, None)
+        mappings[label] = entry
+        self._save_mappings(mappings)
         return await self.async_step_init()
 
     async def async_step_remove_mapping(
@@ -307,7 +328,9 @@ class KimaiOptionsFlowHandler(config_entries.OptionsFlow):
             schema = vol.Schema({vol.Required("mapping"): vol.In(choices)})
             return self.async_show_form(step_id="remove_mapping", data_schema=schema)
 
-        self._mappings.pop(user_input["mapping"], None)
+        mappings = dict(self._mappings)
+        mappings.pop(user_input["mapping"], None)
+        self._save_mappings(mappings)
         return await self.async_step_init()
 
     async def async_step_import_mappings(
@@ -350,9 +373,11 @@ class KimaiOptionsFlowHandler(config_entries.OptionsFlow):
                 errors["base"] = "invalid_json"
             else:
                 if user_input.get("replace"):
-                    self._mappings = imported
+                    mappings = imported
                 else:
-                    self._mappings.update(imported)
+                    mappings = dict(self._mappings)
+                    mappings.update(imported)
+                self._save_mappings(mappings)
                 return await self.async_step_init()
 
         schema = vol.Schema(
@@ -395,5 +420,6 @@ class KimaiOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_done(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
-        self._ensure_mappings_loaded()
-        return self.async_create_entry(title="", data={CONF_MAPPINGS: self._mappings})
+        # Allt är redan sparat av _save_mappings. Skriv tillbaka befintliga
+        # options oförändrade så att flödet avslutas utan att röra datan.
+        return self.async_create_entry(title="", data=dict(self.config_entry.options))
