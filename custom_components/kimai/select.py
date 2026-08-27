@@ -58,12 +58,27 @@ class KimaiProjectSelect(CoordinatorEntity[KimaiCoordinator], SelectEntity):
 
     @property
     def options(self) -> list[str]:
+        """Custom mappings first, then every remaining Kimai project.
+
+        Mappings add to the list rather than replacing it, so a mapping is a
+        shortcut to a specific project+activity pair - not a filter that hides
+        everything else.
+        """
         mappings = self._mappings
-        if mappings:
-            return [m[CONF_LABEL] for m in mappings.values()]
+        labels = [m[CONF_LABEL] for m in mappings.values()]
+
         if not self.coordinator.data:
-            return []
-        return [p["name"] for p in self.coordinator.data.projects]
+            return labels
+
+        # Projekt som redan täcks av en koppling med samma namn tas inte med
+        # två gånger.
+        upptagna = set(labels)
+        projekt = [
+            p["name"]
+            for p in self.coordinator.data.projects
+            if p.get("name") and p["name"] not in upptagna
+        ]
+        return labels + projekt
 
     @property
     def current_option(self) -> str | None:
@@ -90,20 +105,20 @@ class KimaiProjectSelect(CoordinatorEntity[KimaiCoordinator], SelectEntity):
         if label is None:
             return None
 
-        if mappings:
-            for mapping in mappings.values():
-                if mapping[CONF_LABEL] == label:
-                    description = mapping.get(CONF_DESCRIPTION) or label
-                    return (
-                        int(mapping[CONF_PROJECT_ID]),
-                        mapping[CONF_ACTIVITY_ID],
-                        description,
-                    )
-            return None
+        # En koppling vinner över ett projekt med samma namn.
+        for mapping in mappings.values():
+            if mapping[CONF_LABEL] == label:
+                description = mapping.get(CONF_DESCRIPTION) or label
+                return (
+                    int(mapping[CONF_PROJECT_ID]),
+                    mapping[CONF_ACTIVITY_ID],
+                    description,
+                )
 
         if not self.coordinator.data:
             return None
         for project in self.coordinator.data.projects:
             if project["name"] == label:
+                # Ingen koppling - button.py hämtar första aktiviteten.
                 return project["id"], None, None
         return None
