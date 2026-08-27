@@ -42,7 +42,7 @@ class _KimaiButtonBase(CoordinatorEntity[KimaiCoordinator], ButtonEntity):
 class KimaiStartButton(_KimaiButtonBase):
     """Starts a timesheet for whatever project is chosen in select.kimai_project."""
 
-    _attr_name = "Starta"
+    _attr_translation_key = "start"
     _attr_icon = "mdi:play-circle-outline"
 
     def __init__(self, coordinator: KimaiCoordinator, entry: ConfigEntry) -> None:
@@ -89,7 +89,7 @@ class KimaiRestartLastButton(_KimaiButtonBase):
     worked on without needing a mapping configured.
     """
 
-    _attr_name = "Starta senaste"
+    _attr_translation_key = "restart_last"
     _attr_icon = "mdi:restart"
 
     def __init__(self, coordinator: KimaiCoordinator, entry: ConfigEntry) -> None:
@@ -120,7 +120,7 @@ class KimaiRestartLastButton(_KimaiButtonBase):
 class KimaiStopButton(_KimaiButtonBase):
     """Stops the currently active timesheet, if any."""
 
-    _attr_name = "Stoppa"
+    _attr_translation_key = "stop"
     _attr_icon = "mdi:stop-circle-outline"
 
     def __init__(self, coordinator: KimaiCoordinator, entry: ConfigEntry) -> None:

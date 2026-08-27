@@ -30,7 +30,7 @@ class KimaiActiveBinarySensor(CoordinatorEntity[KimaiCoordinator], BinarySensorE
     """
 
     _attr_has_entity_name = True
-    _attr_name = "Aktivt"
+    _attr_translation_key = "active"
     _attr_device_class = BinarySensorDeviceClass.RUNNING
 
     def __init__(self, coordinator: KimaiCoordinator, entry: ConfigEntry) -> None:

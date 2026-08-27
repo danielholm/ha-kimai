@@ -36,7 +36,7 @@ class KimaiProjectSelect(CoordinatorEntity[KimaiCoordinator], SelectEntity):
     """
 
     _attr_has_entity_name = True
-    _attr_name = "Välj projekt"
+    _attr_translation_key = "project"
     _attr_icon = "mdi:briefcase-outline"
 
     def __init__(self, coordinator: KimaiCoordinator, entry: ConfigEntry) -> None:

@@ -49,7 +49,7 @@ class _KimaiSensorBase(CoordinatorEntity[KimaiCoordinator], SensorEntity):
 class KimaiStatusSensor(_KimaiSensorBase):
     """Currently active Kimai project, or idle."""
 
-    _attr_name = "Status"
+    _attr_translation_key = "status"
     _attr_icon = "mdi:clock-outline"
 
     def __init__(self, coordinator: KimaiCoordinator, entry: ConfigEntry) -> None:
@@ -88,7 +88,7 @@ class KimaiElapsedSensor(_KimaiSensorBase):
     instead - that renders client-side without polling.
     """
 
-    _attr_name = "Pågående tid"
+    _attr_translation_key = "elapsed"
     _attr_icon = "mdi:timer-outline"
     _attr_device_class = SensorDeviceClass.DURATION
     _attr_native_unit_of_measurement = UnitOfTime.MINUTES
@@ -110,7 +110,7 @@ class KimaiElapsedSensor(_KimaiSensorBase):
 class KimaiStartedSensor(_KimaiSensorBase):
     """Start timestamp of the running record - lets the frontend count up live."""
 
-    _attr_name = "Startad"
+    _attr_translation_key = "started"
     _attr_icon = "mdi:play-outline"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
@@ -127,7 +127,7 @@ class KimaiStartedSensor(_KimaiSensorBase):
 class KimaiLastSensor(_KimaiSensorBase):
     """What 'Starta senaste' would restart."""
 
-    _attr_name = "Senaste"
+    _attr_translation_key = "last"
     _attr_icon = "mdi:history"
 
     def __init__(self, coordinator: KimaiCoordinator, entry: ConfigEntry) -> None:

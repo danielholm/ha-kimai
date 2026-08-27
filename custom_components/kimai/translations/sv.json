@@ -77,5 +77,42 @@
     "error": {
       "invalid_json": "Kunde inte tolka JSON - kontrollera formatet"
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "active": {
+        "name": "Aktivt"
+      }
+    },
+    "sensor": {
+      "status": {
+        "name": "Status"
+      },
+      "elapsed": {
+        "name": "Pågående tid"
+      },
+      "started": {
+        "name": "Startad"
+      },
+      "last": {
+        "name": "Senaste"
+      }
+    },
+    "select": {
+      "project": {
+        "name": "Välj projekt"
+      }
+    },
+    "button": {
+      "start": {
+        "name": "Starta"
+      },
+      "restart_last": {
+        "name": "Starta senaste"
+      },
+      "stop": {
+        "name": "Stoppa"
+      }
+    }
   }
 }
